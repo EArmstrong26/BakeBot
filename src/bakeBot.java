@@ -1,6 +1,13 @@
-import java.util.Scanner;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpExchange;
 
 public class bakeBot {
+
     public static String respond(String userInput) {
         userInput = userInput.toLowerCase();
 
@@ -29,6 +36,7 @@ public class bakeBot {
 
     public static String getInstructions(String instruction) {
         instruction = instruction.toLowerCase();
+
         if (instruction.contains("cookies")) {
             return "Instructions\n" +
                     "Preheat your oven to 350°F (175°C).\n" +
@@ -93,36 +101,79 @@ public class bakeBot {
                     "Bake for 18–22 minutes, until the edges are set and the center is slightly soft.\n" +
                     "Let cool for at least 15 minutes before serving.";
         }
+
         return "No instructions available";
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
-        Scanner keyboard = new Scanner(System.in);
+        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+
+        server.createContext("/", (HttpExchange exchange) -> {
+
+            String question = "";
+            String answer = "";
+            String instructions = "";
+
+            String query = exchange.getRequestURI().getQuery();
+
+            if (query != null) {
+                if (query.contains("recipe=")) {
+                    question = query.replace("recipe=", "");
+                    question = URLDecoder.decode(question, StandardCharsets.UTF_8);
+
+                    answer = respond(question);
+                    instructions = getInstructions(question);
+                }
+            }
+
+            String page = "<html>" +
+                    "<head>" +
+                    "<title>BakeBot</title>" +
+
+                    "<style>" +
+                    "body { background-color: lightyellow; font-family: Arial; }" +
+                    "h1 { color: brown; }" +
+                    ".box { background-color: white; padding: 20px; margin: 40px; border: 2px solid brown; }" +
+                    "input { width: 300px; padding: 8px; }" +
+                    "button { padding: 8px; background-color: brown; color: white; }" +
+                    "pre { background-color: #eeeeee; padding: 10px; white-space: pre-wrap; }" +
+                    "</style>" +
+
+                    "</head>" +
+                    "<body>" +
+
+                    "<div class='box'>" +
+                    "<h1>Welcome to BakeBot!</h1>" +
+                    "<p>Ask me about a baked good.</p>" +
+
+                    "<form method='get'>" +
+                    "<p>Choice of baking recipe:</p>" +
+                    "<input type='text' name='recipe' value='" + question + "'>" +
+                    "<button type='submit'>Submit</button>" +
+                    "</form>" +
+
+                    "<h2>BakeBot:</h2>" +
+                    "<pre>" + answer + "</pre>" +
+
+                    "<h2>Recipe Instructions:</h2>" +
+                    "<pre>" + instructions + "</pre>" +
+
+                    "</div>" +
+
+                    "</body>" +
+                    "</html>";
+
+            exchange.sendResponseHeaders(200, page.getBytes().length);
+
+            OutputStream output = exchange.getResponseBody();
+            output.write(page.getBytes());
+            output.close();
+        });
+
+        server.start();
 
         System.out.println("Welcome to BakeBot!");
-        System.out.println("Ask me about a baked good.");
-
-        System.out.print("Choice of baking recipe: ");
-        String question = keyboard.nextLine();
-
-        String answer = respond(question);
-
-        System.out.println();
-        System.out.println("BakeBot: " + answer);
-
-        System.out.println("\nWould you like recipe instructions?");
-        System.out.println("1. Yes");
-        System.out.println("2. No");
-        System.out.print("Select an option: ");
-
-        int choice = keyboard.nextInt();
-
-        if (choice == 1) {
-            System.out.println("\nRecipe Instructions:");
-            System.out.println(getInstructions(question));
-        }
-
-        keyboard.close();
+        System.out.println("Go to http://localhost:8000");
     }
 }
