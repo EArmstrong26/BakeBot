@@ -1,11 +1,31 @@
+//handle output errors
 import java.io.IOException;
+
+//used to send data out of the java program (html to browser)
 import java.io.OutputStream;
+
+//stores local address for the web server
 import java.net.InetSocketAddress;
+
+//converts the url into readable text
 import java.net.URLDecoder;
+
+//text encoding (read spaces, symbols, and characters)
 import java.nio.charset.StandardCharsets;
+
+//built-in java web server classes
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpExchange;
 
+
+
+/*
+* method respond()
+*
+* checks what recipe the user typed
+*
+* returns needed ingredients && a baking tip
+* */
 public class bakeBot {
 
     public static String respond(String userInput) {
@@ -34,6 +54,13 @@ public class bakeBot {
         }
     }
 
+
+
+    /*
+    * method getInstructions()
+    *
+    * returns detailed instructions as a string
+    * */
     public static String getInstructions(String instruction) {
         instruction = instruction.toLowerCase();
 
@@ -105,28 +132,49 @@ public class bakeBot {
         return "No instructions available";
     }
 
+
+
+
+    /*
+    * main method()
+    * starts/ builds webpage
+    *
+    * replaces scanner input
+    * (on typing in console outputs to a webpage instead)
+    * */
     public static void main(String[] args) throws IOException {
 
+        //creates web server and local port for the webpage
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
 
+        //creates the route for a user to visit the sites homepage
         server.createContext("/", (HttpExchange exchange) -> {
 
+
+            //variables for webpage data
             String question = "";
             String answer = "";
             String instructions = "";
 
             String query = exchange.getRequestURI().getQuery();
 
+            //checks user submission
             if (query != null) {
                 if (query.contains("recipe=")) {
                     question = query.replace("recipe=", "");
                     question = URLDecoder.decode(question, StandardCharsets.UTF_8);
 
+                    //sends user input into methods
                     answer = respond(question);
                     instructions = getInstructions(question);
                 }
             }
 
+
+            /*
+            * front end html for the webpage
+            *
+            * stored as a string*/
             String page = "<html>" +
                     "<head>" +
                     "<title>BakeBot</title>" +
@@ -173,6 +221,7 @@ public class bakeBot {
 
         server.start();
 
+        //console message
         System.out.println("Welcome to BakeBot!");
         System.out.println("Go to http://localhost:8000");
     }
